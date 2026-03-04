@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Exe related ignores
+RoadmapApp.spec
+favicon*
+build
