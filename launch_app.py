@@ -1,20 +1,8 @@
 import subprocess
 import webbrowser
-import socket
 import threading
-import time
 import os
 import sys
-
-def is_port_open(host, port):
-    """Check if the given port is open on the host."""
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.settimeout(1)
-        try:
-            s.connect((host, port))
-            return True
-        except (ConnectionRefusedError, socket.timeout, socket.error):
-            return False
 
 def get_project_root():
     """Get the project root directory, handling both script and frozen (exe) modes."""
@@ -31,20 +19,20 @@ def get_project_root():
             
     return base_dir
 
-def drain_stdout(pipe):
-    """Continuously read from the pipe so the subprocess never blocks."""
+def drain_stdout(pipe, ready_event):
+    """Read Vite's output line-by-line; signal the event when 'ready' appears."""
     try:
         for line in pipe:
-            print(f"[Vite] {line.strip()}")
+            stripped = line.strip()
+            print(f"[Vite] {stripped}")
+            if "ready" in stripped.lower():
+                ready_event.set()
     except Exception:
         pass
 
 def launch_app():
     # ── CONFIGURATION ──────────────────────────────────────────
-    # Use 127.0.0.1 for socket checks (avoids IPv6 mismatch on Windows)
-    # Use localhost for the browser URL (more readable)
-    check_host = "127.0.0.1"
-    browser_host = "localhost"
+    host = "localhost"
     
     # Get port from command line argument, or default to 5173
     default_port = 5173 
@@ -54,7 +42,7 @@ def launch_app():
         print(f"⚠️ Invalid port provided. Using default: {default_port}")
         port = default_port
         
-    url = f"http://{browser_host}:{port}"
+    url = f"http://{host}:{port}"
     project_path = get_project_root()
     
     # Ensure we are in the project path for npm commands
@@ -63,14 +51,8 @@ def launch_app():
     print(f"🚀 Initializing Roadmap App...")
     print(f"📂 Project Root: {project_path}")
     print(f"📡 Target Port: {port}")
-    
-    # 1. Check if the app is already running
-    if is_port_open(check_host, port):
-        print(f"✨ App is already running. Opening browser at {url}...")
-        webbrowser.open(url)
-        return
 
-    # 2. Start the Vite development server
+    # 1. Start the Vite development server
     print(f"📦 Starting Vite development server on port {port}...")
     try:
         startupinfo = None
@@ -91,32 +73,27 @@ def launch_app():
         print(f"❌ Failed to start npm: {e}")
         return
 
-    # 3. Start a background thread to drain stdout so the pipe never blocks
-    reader_thread = threading.Thread(target=drain_stdout, args=(process.stdout,), daemon=True)
+    # 2. Start a background thread to drain stdout and watch for the "ready" signal
+    ready_event = threading.Event()
+    reader_thread = threading.Thread(target=drain_stdout, args=(process.stdout, ready_event), daemon=True)
     reader_thread.start()
 
-    # 4. Poll the port until it's open
-    print(f"⏳ Waiting for server to be ready at {url}...", end="", flush=True)
-    max_attempts = 30
-    attempts = 0
+    # 3. Wait for Vite to report it's ready (up to 15 seconds)
+    print(f"⏳ Waiting for server to be ready...")
+    server_ready = ready_event.wait(timeout=15)
     
-    while attempts < max_attempts:
-        if not is_port_open(check_host, port):
-            print("\n✅ Server is ready!")
-            break
-        print(".", end="", flush=True)
-        time.sleep(0.5)
-        attempts += 1
-    else:
-        print("\n❌ Timeout: Server took too long to start.")
+    if not server_ready:
+        print("❌ Timeout: Server took too long to start.")
         process.terminate()
         return
 
-    # 5. Open the browser
-    print(f"🌍 Opening your browser...")
+    print("✅ Server is ready!")
+
+    # 4. Open the browser
+    print(f"🌍 Opening your browser at {url}...")
     webbrowser.open(url)
 
-    # 6. Keep the script running to keep the process alive
+    # 5. Keep the script running to keep the process alive
     print("💡 Press Ctrl+C to stop the server.\n")
     try:
         process.wait()
@@ -128,4 +105,3 @@ def launch_app():
 
 if __name__ == "__main__":
     launch_app()
-
