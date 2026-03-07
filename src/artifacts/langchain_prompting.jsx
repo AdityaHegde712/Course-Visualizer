@@ -1,4 +1,6 @@
 import { useState } from "react";
+import TopicBlock from "../components/TopicBlock";
+import { useProgress } from "../hooks/useProgress";
 
 const roadmap = [
   {
@@ -10,6 +12,7 @@ const roadmap = [
     goal: "Understand how LLMs work at the inference level, what NVIDIA NIM provides, and how to make your first API calls with Llama-3.1.",
     topics: [
       {
+        id: "lc-01-llm-text-gen",
         name: "How LLMs Generate Text",
         items: [
           "Tokens, vocabulary, and tokenization (tiktoken / HuggingFace tokenizers)",
@@ -19,6 +22,7 @@ const roadmap = [
         ],
       },
       {
+        id: "lc-01-nim",
         name: "NVIDIA NIM",
         items: [
           "NIM as a model inference microservice abstraction",
@@ -28,6 +32,7 @@ const roadmap = [
         ],
       },
       {
+        id: "lc-01-first-calls",
         name: "First Calls & Tooling",
         items: [
           "Python requests / openai SDK against NIM endpoint",
@@ -52,6 +57,7 @@ const roadmap = [
     goal: "Build a systematic, iterative prompt engineering practice — from basic instructions to chain-of-thought and few-shot patterns.",
     topics: [
       {
+        id: "lc-02-core-prompting",
         name: "Core Prompting Patterns",
         items: [
           "Zero-shot: instruction only, no examples",
@@ -61,6 +67,7 @@ const roadmap = [
         ],
       },
       {
+        id: "lc-02-iterative",
         name: "Iterative Refinement",
         items: [
           "Prompt versioning — treat prompts like code",
@@ -70,6 +77,7 @@ const roadmap = [
         ],
       },
       {
+        id: "lc-02-structured-output",
         name: "Structured Output",
         items: [
           "JSON-mode and grammar-constrained decoding",
@@ -94,6 +102,7 @@ const roadmap = [
     goal: "Use LangChain to compose modular, reusable LLM pipelines — from simple chains to multi-step document workflows.",
     topics: [
       {
+        id: "lc-03-abstractions",
         name: "Core LangChain Abstractions",
         items: [
           "LLMs vs. ChatModels — when to use each",
@@ -103,6 +112,7 @@ const roadmap = [
         ],
       },
       {
+        id: "lc-03-chains",
         name: "Chains & Pipelines",
         items: [
           "Sequential chains: output of one step → input of next",
@@ -112,6 +122,7 @@ const roadmap = [
         ],
       },
       {
+        id: "lc-03-memory",
         name: "Memory & State",
         items: [
           "ConversationBufferMemory vs. ConversationSummaryMemory",
@@ -136,6 +147,7 @@ const roadmap = [
     goal: "Implement the three core LLM application archetypes — document analysis, conversational agents, and controlled text generation.",
     topics: [
       {
+        id: "lc-04-doc-analysis",
         name: "Large-Scale Document Analysis",
         items: [
           "Map-reduce summarization for documents exceeding context window",
@@ -145,6 +157,7 @@ const roadmap = [
         ],
       },
       {
+        id: "lc-04-chatbot",
         name: "Chatbot Applications",
         items: [
           "System prompt design for persona and constraint setting",
@@ -154,6 +167,7 @@ const roadmap = [
         ],
       },
       {
+        id: "lc-04-text-gen",
         name: "Controlled Text Generation",
         items: [
           "Persona and tone control via system prompts",
@@ -178,6 +192,7 @@ const roadmap = [
     goal: "Connect prompt engineering to the advanced techniques it underpins — so you're ready to go deeper into RAG pipelines and fine-tuning.",
     topics: [
       {
+        id: "lc-05-why-not-enough",
         name: "Why Prompt Engineering Isn't Enough",
         items: [
           "Knowledge cutoff and hallucination as core LLM failure modes",
@@ -187,6 +202,7 @@ const roadmap = [
         ],
       },
       {
+        id: "lc-05-rag-primer",
         name: "RAG Primer",
         items: [
           "Retrieval-Augmented Generation architecture overview",
@@ -196,6 +212,7 @@ const roadmap = [
         ],
       },
       {
+        id: "lc-05-peft-primer",
         name: "PEFT Primer",
         items: [
           "What fine-tuning adds over prompting (task-specific priors)",
@@ -285,19 +302,6 @@ const PhaseCard = ({ phase, active, onClick }) => (
   </div>
 );
 
-const TopicBlock = ({ topic, color }) => (
-  <div style={{ marginBottom: "22px" }}>
-    <div style={{ fontSize: "10px", color: color, fontFamily: "monospace", letterSpacing: "0.14em", fontWeight: 700, marginBottom: "10px" }}>
-      ▸ {topic.name.toUpperCase()}
-    </div>
-    {topic.items.map((item, i) => (
-      <div key={i} style={{ display: "flex", gap: "10px", marginBottom: "6px" }}>
-        <span style={{ color: "rgba(255,255,255,0.18)", fontSize: "11px", marginTop: "2px", flexShrink: 0 }}>·</span>
-        <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.68)", lineHeight: 1.6 }}>{item}</span>
-      </div>
-    ))}
-  </div>
-);
 
 export const meta = {
   id: "langchain_prompting",
@@ -309,6 +313,7 @@ export const meta = {
 export default function Langchain_Prompting() {
   const [active, setActive] = useState(0);
   const phase = roadmap[active];
+  const { progress, toggle } = useProgress();
 
   return (
     <div style={{ minHeight: "100vh", background: "#0c0c10", fontFamily: "'Inter', -apple-system, sans-serif", display: "flex", flexDirection: "column" }}>
@@ -371,7 +376,7 @@ export default function Langchain_Prompting() {
           {!phase.isProject ? (
             <>
               <div style={{ fontSize: "9px", color: "rgba(255,255,255,0.22)", letterSpacing: "0.18em", fontFamily: "monospace", marginBottom: "14px" }}>TOPICS</div>
-              {phase.topics.map((t, i) => <TopicBlock key={i} topic={t} color={phase.color} />)}
+              {phase.topics.map((t, i) => <TopicBlock key={t.id || i} topic={t} color={phase.color} checked={!!progress[t.id]} onToggle={toggle} />)}
 
               <div style={{ marginTop: "26px", paddingTop: "18px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
                 <div style={{ fontSize: "9px", color: "rgba(255,255,255,0.22)", letterSpacing: "0.18em", fontFamily: "monospace", marginBottom: "10px" }}>RESOURCES</div>

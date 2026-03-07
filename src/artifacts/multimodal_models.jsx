@@ -1,4 +1,6 @@
 import { useState } from "react";
+import TopicBlock from "../components/TopicBlock";
+import { useProgress } from "../hooks/useProgress";
 
 const roadmap = [
   {
@@ -10,14 +12,17 @@ const roadmap = [
     goal: "Understand different data modalities and how to preprocess them into tensor-ready formats for neural networks.",
     topics: [
       {
+        id: "mm-01-modalities",
         name: "Data Modalities Overview",
         items: ["Images (RGB, grayscale, medical CT/MRI)", "Point clouds & LiDAR (3D depth data)", "Tabular / structured data", "Audio spectrograms as 2D images"],
       },
       {
+        id: "mm-01-preprocessing",
         name: "Preprocessing Pipelines",
         items: ["torchvision transforms for images", "open3d / numpy for point clouds", "MONAI for medical imaging (CT volumes)", "Normalization, augmentation, batching"],
       },
       {
+        id: "mm-01-nn-readiness",
         name: "Neural Network Readiness",
         items: ["Tensor shapes and channel-first vs channel-last", "DataLoader & custom Dataset classes", "Handling variable-length inputs", "Train/val/test splits for multimodal data"],
       },
@@ -37,14 +42,17 @@ const roadmap = [
     goal: "Master early, late, and intermediate fusion techniques — the core architecture patterns for multimodal models.",
     topics: [
       {
+        id: "mm-02-early-fusion",
         name: "Early Fusion",
         items: ["Concatenating raw inputs before any network layer", "When to use: modalities are tightly coupled", "Risk: one modality can dominate training", "Example: stacking RGB + depth channels"],
       },
       {
+        id: "mm-02-late-fusion",
         name: "Late Fusion",
         items: ["Train separate encoders per modality", "Merge predictions/embeddings at decision layer", "When to use: modalities have very different structures", "Example: image CNN + tabular MLP → combined head"],
       },
       {
+        id: "mm-02-intermediate-fusion",
         name: "Intermediate Fusion",
         items: ["Cross-attention between modality feature maps", "Transformer-based multimodal fusion (ViLT, CLIP-style)", "Gated fusion units", "Feature Pyramid Networks for scale-aware fusion"],
       },
@@ -64,14 +72,17 @@ const roadmap = [
     goal: "Learn why structural information gets lost in fusion and the techniques to preserve it.",
     topics: [
       {
+        id: "mm-03-structure-loss",
         name: "What is Structure Loss?",
         items: ["Spatial relationships destroyed by flattening", "Loss of temporal ordering in sequences", "Scale ambiguity in 3D→2D projection", "Modality imbalance during training"],
       },
       {
+        id: "mm-03-mitigation",
         name: "Mitigation Techniques",
         items: ["Skip connections (ResNet-style) in fusion layers", "Positional encodings for spatial awareness", "Attention masks to retain locality", "Auxiliary losses per modality (multi-task learning)"],
       },
       {
+        id: "mm-03-training-stability",
         name: "Training Stability",
         items: ["Gradient balancing across modalities", "Modality dropout for robustness", "Loss weighting strategies", "Curriculum learning (easy → hard modality combos)"],
       },
@@ -91,14 +102,17 @@ const roadmap = [
     goal: "Distinguish between modality processing and agent orchestration — build a perception-to-action pipeline.",
     topics: [
       {
+        id: "mm-04-modality-vs-agent",
         name: "Modality vs. Agent Orchestration",
         items: ["Modality: how data is processed (vision, language, depth)", "Agent: how decisions are made and actions executed", "Tool-calling LLMs as orchestrators", "Multimodal models as perception modules"],
       },
       {
+        id: "mm-04-agentic-frameworks",
         name: "Agentic Frameworks",
         items: ["LangGraph — stateful agent graphs", "LlamaIndex — RAG + agentic pipelines", "AutoGen — multi-agent conversations", "ReAct pattern: Reason + Act loops"],
       },
       {
+        id: "mm-04-nim-blueprints",
         name: "NVIDIA NIM & AI Blueprints",
         items: ["NIM microservices for model inference", "Visual AI Agents with VSS (Video Search & Summarization)", "NVIDIA AI Blueprints architecture", "Deploying multimodal endpoints at scale"],
       },
@@ -190,21 +204,6 @@ const PhaseCard = ({ phase, active, onClick }) => {
   );
 };
 
-const TopicBlock = ({ topic, color }) => (
-  <div style={{ marginBottom: "20px" }}>
-    <div style={{ fontSize: "11px", color: color, fontFamily: "'Courier New', monospace", letterSpacing: "0.12em", fontWeight: 700, marginBottom: "10px" }}>
-      ▸ {topic.name.toUpperCase()}
-    </div>
-    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-      {topic.items.map((item, i) => (
-        <div key={i} style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
-          <span style={{ color: "rgba(255,255,255,0.2)", fontSize: "12px", marginTop: "1px", flexShrink: 0 }}>·</span>
-          <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.7)", lineHeight: 1.6 }}>{item}</span>
-        </div>
-      ))}
-    </div>
-  </div>
-);
 
 export const meta = {
   id: "multimodal_models",
@@ -216,6 +215,7 @@ export const meta = {
 export default function MultimodalCourseRoadmap() {
   const [active, setActive] = useState(0);
   const phase = roadmap[active];
+  const { progress, toggle } = useProgress();
 
   return (
     <div style={{
@@ -325,7 +325,7 @@ export default function MultimodalCourseRoadmap() {
               <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.25)", letterSpacing: "0.18em", fontFamily: "'Courier New', monospace", marginBottom: "16px" }}>
                 TOPICS
               </div>
-              {phase.topics.map((t, i) => <TopicBlock key={i} topic={t} color={phase.color} />)}
+              {phase.topics.map((t, i) => <TopicBlock key={t.id || i} topic={t} color={phase.color} checked={!!progress[t.id]} onToggle={toggle} />)}
 
               {/* Resources */}
               <div style={{ marginTop: "28px", paddingTop: "20px", borderTop: "1px solid rgba(255,255,255,0.07)" }}>

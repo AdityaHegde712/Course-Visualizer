@@ -19,50 +19,63 @@ def get_project_root():
             
     return base_dir
 
-def drain_stdout(pipe, ready_event):
-    """Read Vite's output line-by-line; signal the event when 'ready' appears."""
+def drain_stdout(pipe, ready_event, label):
+    """Read a process's output line-by-line; signal the event when 'ready' appears."""
     try:
         for line in pipe:
             stripped = line.strip()
-            print(f"[Vite] {stripped}")
+            print(f"[{label}] {stripped}")
             if "ready" in stripped.lower():
                 ready_event.set()
     except Exception:
         pass
 
-def launch_app():
-    # ── CONFIGURATION ──────────────────────────────────────────
-    host = "localhost"
+def start_backend(project_path, backend_port):
+    """Start the FastAPI sidecar server via uvicorn."""
+    print(f"🐍 Starting FastAPI backend on port {backend_port}...")
     
-    # Get port from command line argument, or default to 5173
-    default_port = 5173 
+    startupinfo = None
+    if os.name == 'nt':
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    
     try:
-        port = int(sys.argv[1]) if len(sys.argv) > 1 else default_port
-    except ValueError:
-        print(f"⚠️ Invalid port provided. Using default: {default_port}")
-        port = default_port
-        
-    url = f"http://{host}:{port}"
-    project_path = get_project_root()
-    
-    # Ensure we are in the project path for npm commands
-    os.chdir(project_path)
-    
-    print(f"🚀 Initializing Roadmap App...")
-    print(f"📂 Project Root: {project_path}")
-    print(f"📡 Target Port: {port}")
-
-    # 1. Start the Vite development server
-    print(f"📦 Starting Vite development server on port {port}...")
-    try:
-        startupinfo = None
-        if os.name == 'nt':
-            startupinfo = subprocess.STARTUPINFO()
-            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-            
         process = subprocess.Popen(
-            ["npm", "run", "dev", "--", "--port", str(port)], 
-            cwd=project_path, 
+            [sys.executable, "-m", "uvicorn", "backend.main:app",
+             "--host", "127.0.0.1", "--port", str(backend_port)],
+            cwd=project_path,
+            shell=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            startupinfo=startupinfo
+        )
+    except Exception as e:
+        print(f"❌ Failed to start backend: {e}")
+        return None, None
+    
+    ready_event = threading.Event()
+    reader = threading.Thread(
+        target=drain_stdout,
+        args=(process.stdout, ready_event, "Backend"),
+        daemon=True
+    )
+    reader.start()
+    return process, ready_event
+
+def start_frontend(project_path, frontend_port):
+    """Start the Vite development server."""
+    print(f"📦 Starting Vite frontend on port {frontend_port}...")
+    
+    startupinfo = None
+    if os.name == 'nt':
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    
+    try:
+        process = subprocess.Popen(
+            ["npm", "run", "dev", "--", "--port", str(frontend_port)],
+            cwd=project_path,
             shell=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
@@ -70,37 +83,90 @@ def launch_app():
             startupinfo=startupinfo
         )
     except Exception as e:
-        print(f"❌ Failed to start npm: {e}")
-        return
-
-    # 2. Start a background thread to drain stdout and watch for the "ready" signal
-    ready_event = threading.Event()
-    reader_thread = threading.Thread(target=drain_stdout, args=(process.stdout, ready_event), daemon=True)
-    reader_thread.start()
-
-    # 3. Wait for Vite to report it's ready (up to 15 seconds)
-    print(f"⏳ Waiting for server to be ready...")
-    server_ready = ready_event.wait(timeout=15)
+        print(f"❌ Failed to start frontend: {e}")
+        return None, None
     
-    if not server_ready:
-        print("❌ Timeout: Server took too long to start.")
-        process.terminate()
+    ready_event = threading.Event()
+    reader = threading.Thread(
+        target=drain_stdout,
+        args=(process.stdout, ready_event, "Vite"),
+        daemon=True
+    )
+    reader.start()
+    return process, ready_event
+
+def launch_app():
+    # ── CONFIGURATION ──────────────────────────────────────────
+    host = "localhost"
+    
+    default_frontend_port = 5173
+    default_backend_port = 8042
+    
+    try:
+        frontend_port = int(sys.argv[1]) if len(sys.argv) > 1 else default_frontend_port
+    except ValueError:
+        print(f"⚠️ Invalid frontend port provided. Using default: {default_frontend_port}")
+        frontend_port = default_frontend_port
+    
+    try:
+        backend_port = int(sys.argv[2]) if len(sys.argv) > 2 else default_backend_port
+    except ValueError:
+        print(f"⚠️ Invalid backend port provided. Using default: {default_backend_port}")
+        backend_port = default_backend_port
+        
+    url = f"http://{host}:{frontend_port}"
+    project_path = get_project_root()
+    
+    # Ensure we are in the project path
+    os.chdir(project_path)
+    
+    print(f"🚀 Initializing Roadmap App...")
+    print(f"📂 Project Root: {project_path}")
+    print(f"📡 Frontend Port: {frontend_port}")
+    print(f"📡 Backend Port:  {backend_port}")
+
+    # 1. Start the FastAPI backend
+    backend_proc, backend_ready = start_backend(project_path, backend_port)
+    if backend_proc is None:
         return
 
-    print("✅ Server is ready!")
+    # 2. Start the Vite frontend
+    frontend_proc, frontend_ready = start_frontend(project_path, frontend_port)
+    if frontend_proc is None:
+        backend_proc.terminate()
+        return
+
+    # 3. Wait for both servers to be ready
+    print(f"⏳ Waiting for servers to be ready...")
+    
+    backend_ok = backend_ready.wait(timeout=10)
+    if not backend_ok:
+        print("⚠️ Backend may not be fully ready yet (continuing anyway)...")
+    else:
+        print("✅ Backend is ready!")
+    
+    frontend_ok = frontend_ready.wait(timeout=15)
+    if not frontend_ok:
+        print("❌ Timeout: Frontend took too long to start.")
+        backend_proc.terminate()
+        frontend_proc.terminate()
+        return
+    
+    print("✅ Frontend is ready!")
 
     # 4. Open the browser
     print(f"🌍 Opening your browser at {url}...")
     webbrowser.open(url)
 
-    # 5. Keep the script running to keep the process alive
-    print("💡 Press Ctrl+C to stop the server.\n")
+    # 5. Keep the script running to keep both processes alive
+    print("💡 Press Ctrl+C to stop both servers.\n")
     try:
-        process.wait()
+        frontend_proc.wait()
     except KeyboardInterrupt:
-        print("\n🛑 Shutting down server...")
+        print("\n🛑 Shutting down servers...")
     finally:
-        process.terminate()
+        frontend_proc.terminate()
+        backend_proc.terminate()
         print("Done.")
 
 if __name__ == "__main__":

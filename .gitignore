@@ -27,3 +27,11 @@ dist-ssr
 RoadmapApp.spec
 favicon*
 build
+
+# Progress tracking (local-only, never commit)
+progress.json
+
+# Python
+__pycache__/
+*.pyc
+backend/venv/

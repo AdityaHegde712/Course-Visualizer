@@ -1,4 +1,6 @@
 import { useState } from "react";
+import TopicBlock from "../components/TopicBlock";
+import { useProgress } from "../hooks/useProgress";
 
 const roadmap = [
   {
@@ -11,6 +13,7 @@ const roadmap = [
     goal: "Build the production-code credibility you're missing. Understand how real software is structured, tested, and shipped — not just experimented with.",
     topics: [
       {
+        id: "sys-01-dsa",
         name: "Data Structures & Algorithms (Targeted)",
         items: [
           "Focus on patterns, not grinding: sliding window, two pointers, BFS/DFS, dynamic programming",
@@ -20,6 +23,7 @@ const roadmap = [
         ],
       },
       {
+        id: "sys-01-clean-code",
         name: "Clean Code & Software Design",
         items: [
           "SOLID principles — especially Single Responsibility & Dependency Inversion",
@@ -29,6 +33,7 @@ const roadmap = [
         ],
       },
       {
+        id: "sys-01-git-testing",
         name: "Git, Testing & Dev Workflow",
         items: [
           "Git branching strategy: feature branches, PRs, rebase vs merge",
@@ -55,6 +60,7 @@ const roadmap = [
     goal: "Develop the vocabulary and mental models to reason about how systems are built at scale. This is what separates ML engineers from ML researchers in industry.",
     topics: [
       {
+        id: "sys-02-distributed",
         name: "Distributed Systems Fundamentals",
         items: [
           "CAP theorem — consistency vs availability tradeoffs in real systems",
@@ -64,6 +70,7 @@ const roadmap = [
         ],
       },
       {
+        id: "sys-02-design-patterns",
         name: "System Design Patterns",
         items: [
           "Load balancers, reverse proxies, API gateways",
@@ -73,6 +80,7 @@ const roadmap = [
         ],
       },
       {
+        id: "sys-02-ml-systems",
         name: "ML Systems Specifically",
         items: [
           "Model serving architectures: batch vs real-time inference",
@@ -99,6 +107,7 @@ const roadmap = [
     goal: "Go from 'I've used pandas' to someone who can reason about data storage, retrieval, and the right DB for a given problem — including vector databases relevant to your ML background.",
     topics: [
       {
+        id: "sys-03-sql",
         name: "Relational Databases (SQL)",
         items: [
           "Schema design: normalization (1NF–3NF), when to denormalize",
@@ -108,6 +117,7 @@ const roadmap = [
         ],
       },
       {
+        id: "sys-03-nosql",
         name: "NoSQL & When to Use It",
         items: [
           "Document stores (MongoDB): flexible schema, aggregation pipelines",
@@ -117,6 +127,7 @@ const roadmap = [
         ],
       },
       {
+        id: "sys-03-vector-db",
         name: "Vector Databases & Embeddings (Your Edge)",
         items: [
           "How vector DBs work: ANN search, HNSW vs IVF indexing",
@@ -143,6 +154,7 @@ const roadmap = [
     goal: "Bridge the gap from 'runs on my machine' to 'runs in production'. This is the highest-leverage phase for your specific gap — turning experiment code into deployable, maintainable systems.",
     topics: [
       {
+        id: "sys-04-apis",
         name: "APIs & Service Design",
         items: [
           "REST API design: endpoints, HTTP verbs, status codes, versioning",
@@ -152,6 +164,7 @@ const roadmap = [
         ],
       },
       {
+        id: "sys-04-containers",
         name: "Containers & Deployment",
         items: [
           "Docker: write Dockerfiles for ML services (GPU-aware images)",
@@ -161,6 +174,7 @@ const roadmap = [
         ],
       },
       {
+        id: "sys-04-mlops",
         name: "MLOps Practices",
         items: [
           "Experiment tracking: MLflow or Weights & Biases — use in all future projects",
@@ -187,6 +201,7 @@ const roadmap = [
     goal: "Synthesize everything into interview-ready system design skills. Practice communicating tradeoffs clearly — this is the skill that gets you offers at top companies.",
     topics: [
       {
+        id: "sys-05-ml-design",
         name: "ML System Design Problems",
         items: [
           "Design a recommendation system (Netflix/Spotify style)",
@@ -196,6 +211,7 @@ const roadmap = [
         ],
       },
       {
+        id: "sys-05-general-design",
         name: "General System Design",
         items: [
           "URL shortener (classic — get the fundamentals right)",
@@ -205,6 +221,7 @@ const roadmap = [
         ],
       },
       {
+        id: "sys-05-interview-perf",
         name: "How to Actually Perform in Interviews",
         items: [
           "Framework: Clarify → Estimate → High-level → Deep dive → Tradeoffs",
@@ -313,25 +330,18 @@ const PhaseCard = ({ phase, active, onClick }) => {
   );
 };
 
-const TopicBlock = ({ topic, color }) => (
-  <div style={{ marginBottom: "22px" }}>
-    <div style={{ fontSize: "11px", color: color, fontFamily: "'Courier New', monospace", letterSpacing: "0.12em", fontWeight: 700, marginBottom: "10px" }}>
-      ▸ {topic.name.toUpperCase()}
-    </div>
-    <div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
-      {topic.items.map((item, i) => (
-        <div key={i} style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
-          <span style={{ color: "rgba(255,255,255,0.2)", fontSize: "12px", marginTop: "2px", flexShrink: 0 }}>·</span>
-          <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.72)", lineHeight: 1.65 }}>{item}</span>
-        </div>
-      ))}
-    </div>
-  </div>
-);
+
+export const meta = {
+  id: "systems_roadmap",
+  title: "Systems Roadmap",
+  icon: "◈",
+  description: "Fall 2026 intern prep roadmap — from researcher to production ML engineer.",
+};
 
 export default function Fall2026Roadmap() {
   const [active, setActive] = useState(0);
   const phase = roadmap[active];
+  const { progress, toggle } = useProgress();
 
   return (
     <div style={{
@@ -465,7 +475,7 @@ export default function Fall2026Roadmap() {
               <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.22)", letterSpacing: "0.18em", fontFamily: "'Courier New', monospace", marginBottom: "14px" }}>
                 TOPICS
               </div>
-              {phase.topics.map((t, i) => <TopicBlock key={i} topic={t} color={phase.color} />)}
+              {phase.topics.map((t, i) => <TopicBlock key={t.id || i} topic={t} color={phase.color} checked={!!progress[t.id]} onToggle={toggle} />)}
 
               {/* Resources */}
               <div style={{ marginTop: "24px", paddingTop: "18px", borderTop: "1px solid rgba(255,255,255,0.07)" }}>

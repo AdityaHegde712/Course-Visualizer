@@ -1,4 +1,6 @@
 import { useState } from "react";
+import TopicBlock from "../components/TopicBlock";
+import { useProgress } from "../hooks/useProgress";
 
 const roadmap = [
   {
@@ -10,6 +12,7 @@ const roadmap = [
     goal: "Build a first-principles mental model of where inference time and memory go — prefill vs. decode, KV-cache mechanics, and the memory-bandwidth wall.",
     topics: [
       {
+        id: "si-01-autoregressive",
         name: "Autoregressive Decoding",
         items: [
           "Why LLMs generate one token at a time (causal attention mask)",
@@ -19,6 +22,7 @@ const roadmap = [
         ],
       },
       {
+        id: "si-01-kv-cache",
         name: "KV-Cache Deep Dive",
         items: [
           "What gets cached: key/value projections per layer per token",
@@ -28,6 +32,7 @@ const roadmap = [
         ],
       },
       {
+        id: "si-01-rooflines",
         name: "Memory & Compute Rooflines",
         items: [
           "Arithmetic intensity: FLOP/byte ratio that determines if you're compute- or bandwidth-bound",
@@ -53,6 +58,7 @@ const roadmap = [
     goal: "Understand how request scheduling and batching strategies govern throughput and tail latency under contention.",
     topics: [
       {
+        id: "si-02-batching",
         name: "Batching Strategies",
         items: [
           "Static batching: pad all sequences to max length, simple but wasteful",
@@ -62,6 +68,7 @@ const roadmap = [
         ],
       },
       {
+        id: "si-02-scheduling",
         name: "Scheduling Under Contention",
         items: [
           "Head-of-line blocking: one long request stalls short ones",
@@ -71,6 +78,7 @@ const roadmap = [
         ],
       },
       {
+        id: "si-02-tradeoffs",
         name: "Throughput vs. Latency Trade-offs",
         items: [
           "Throughput (tokens/sec) vs. latency (P50/P99 TTFT, TPOT)",
@@ -96,6 +104,7 @@ const roadmap = [
     freeNote: "Use Minikube or k3s locally, or Google Kubernetes Engine (GKE) free tier / Civo free $250 credit. For GPU access, use a Kaggle or Google Colab T4 for model testing; run vLLM with a small model (Phi-3-mini, Qwen2-0.5B) to stay within free memory limits.",
     topics: [
       {
+        id: "si-03-monolithic",
         name: "Monolithic vLLM Deployment",
         items: [
           "vLLM OpenAI-compatible server: docker run flags, tensor-parallel-size, gpu-memory-utilization",
@@ -105,6 +114,7 @@ const roadmap = [
         ],
       },
       {
+        id: "si-03-gateway",
         name: "Gateway-Based Architecture",
         items: [
           "Why a gateway: load balancing, auth, rate limiting, routing",
@@ -114,6 +124,7 @@ const roadmap = [
         ],
       },
       {
+        id: "si-03-k8s-fundamentals",
         name: "Kubernetes Fundamentals for Inference",
         items: [
           "ConfigMaps and Secrets for model config and API keys",
@@ -140,6 +151,7 @@ const roadmap = [
     freeNote: "Dynamo itself requires NVIDIA hardware. Study the architecture from the open-source repo and paper. Practice the disaggregation concepts with vLLM's experimental disaggregated prefill feature on a free Colab/Kaggle GPU, which implements the same principles.",
     topics: [
       {
+        id: "si-04-disaggregation",
         name: "Prefill–Decode Disaggregation",
         items: [
           "Why co-locating prefill and decode wastes GPU utilization",
@@ -149,6 +161,7 @@ const roadmap = [
         ],
       },
       {
+        id: "si-04-kv-routing",
         name: "KV-Aware Routing",
         items: [
           "Routing requests to the decode worker that already holds the KV prefix",
@@ -158,6 +171,7 @@ const roadmap = [
         ],
       },
       {
+        id: "si-04-dynamo",
         name: "NVIDIA Dynamo Architecture",
         items: [
           "Dynamo as a disaggregated inference framework built on vLLM",
@@ -184,6 +198,7 @@ const roadmap = [
     freeNote: "The entire stack (Prometheus, Grafana, Loki, Tempo) is fully open-source and free. Deploy locally via Docker Compose or the kube-prometheus-stack Helm chart on Minikube. Grafana Cloud also has a generous free tier if you want hosted dashboards.",
     topics: [
       {
+        id: "si-05-prometheus-grafana",
         name: "Metrics with Prometheus & Grafana",
         items: [
           "vLLM's built-in /metrics endpoint: token throughput, queue depth, KV-cache usage",
@@ -193,6 +208,7 @@ const roadmap = [
         ],
       },
       {
+        id: "si-05-loki",
         name: "Structured Logging with Loki",
         items: [
           "Structured JSON logs from vLLM: request_id, prompt_tokens, completion_tokens, latency",
@@ -202,6 +218,7 @@ const roadmap = [
         ],
       },
       {
+        id: "si-05-tempo",
         name: "Distributed Tracing with Tempo",
         items: [
           "OpenTelemetry instrumentation in a LangChain / FastAPI gateway",
@@ -286,6 +303,7 @@ export const meta = {
 export default function ScaleInference() {
   const [active, setActive] = useState(0);
   const phase = roadmap[active];
+  const { progress, toggle } = useProgress();
 
   return (
     <div style={{ minHeight: "100vh", background: "#0b0b0f", fontFamily: "'Inter', -apple-system, sans-serif", display: "flex", flexDirection: "column" }}>
@@ -352,15 +370,7 @@ export default function ScaleInference() {
             <>
               <div style={{ fontSize: "9px", color: "rgba(255,255,255,0.2)", letterSpacing: "0.18em", fontFamily: "monospace", marginBottom: "13px" }}>TOPICS</div>
               {phase.topics.map((t, i) => (
-                <div key={i} style={{ marginBottom: "20px" }}>
-                  <div style={{ fontSize: "10px", color: phase.color, fontFamily: "monospace", letterSpacing: "0.13em", fontWeight: 700, marginBottom: "9px" }}>▸ {t.name.toUpperCase()}</div>
-                  {t.items.map((item, j) => (
-                    <div key={j} style={{ display: "flex", gap: "9px", marginBottom: "6px" }}>
-                      <span style={{ color: "rgba(255,255,255,0.16)", fontSize: "11px", marginTop: "2px", flexShrink: 0 }}>·</span>
-                      <span style={{ fontSize: "12.5px", color: "rgba(255,255,255,0.65)", lineHeight: 1.6 }}>{item}</span>
-                    </div>
-                  ))}
-                </div>
+                <TopicBlock key={t.id || i} topic={t} color={phase.color} checked={!!progress[t.id]} onToggle={toggle} />
               ))}
               <div style={{ marginTop: "24px", paddingTop: "16px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
                 <div style={{ fontSize: "9px", color: "rgba(255,255,255,0.2)", letterSpacing: "0.18em", fontFamily: "monospace", marginBottom: "9px" }}>RESOURCES</div>
